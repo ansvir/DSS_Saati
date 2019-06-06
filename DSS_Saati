@@ -1,0 +1,344 @@
+#pragma hdrstop
+#pragma argsused
+#include <iostream>
+#include <iomanip>
+using namespace std;
+int kolZnach(string);
+string zapMas(string,int);
+bool proverkaF(string,int);
+int maksSlov(string*,int);
+void vyvodRazdelov(string);
+int main()
+{
+        int alt_kol, kr_kol, podkr_kol;
+        string stroka, problema, razdel;
+        
+        //ввод проблемы
+        razdel="VVOD PROBLEMY";
+        vyvodRazdelov(razdel);
+
+        cout<<"Vvedite problemu: ";
+        do{ getline(cin,problema); } while(problema=="");
+
+        razdel="VVOD NAZVANIJ";
+        vyvodRazdelov(razdel);
+
+        //ввод альтернатив, критериев и подкритериев
+        cout<<"Vvedite alternativy(cherez zapyatuyu): ";
+        do{ getline(cin,stroka); } while (stroka=="");
+        alt_kol=kolZnach(stroka);
+        if(alt_kol==1)
+        {
+                cout<<"OPTIMALNAJA ALTERNATIVA: '"<<stroka<<"'."<<endl;
+                system("pause");
+                return 0;
+        }
+
+        string *alt_mas;
+        alt_mas=new string[alt_kol];
+        for(int i=0;i<alt_kol;i++) alt_mas[i]=zapMas(stroka,i+1);
+        stroka="";
+        cout<<"Vvedite kriterii(cherez zapyatuyu): ";
+        do{ getline(cin,stroka); } while (stroka=="");
+        kr_kol=kolZnach(stroka);
+        string *kr_mas;
+        kr_mas=new string[kr_kol];
+        for(int i=0;i<kr_kol;i++) kr_mas[i]=zapMas(stroka,i+1);
+        stroka="";
+        cout<<"Vvedite kolichestvo podkriteriev: ";
+        do{cin>>podkr_kol;} while (!(podkr_kol>=0));
+        string **podkr_mas;
+        podkr_mas=new string* [kr_kol];
+        for(int i=0;i<kr_kol;i++) podkr_mas[i]=new string[podkr_kol];
+
+        //массивы оценок и долей
+        double *ocenka_kr, **ocenka_alt_i_kr, **ocenka_podkr, ***ocenka_alt_i_podkr;
+        double *dolya_kr, **dolya_alt_i_kr, **dolya_podkr, ***dolya_alt_i_podkr;
+        ocenka_kr=new double[kr_kol];
+        dolya_kr=new double[kr_kol];
+        ocenka_alt_i_kr=new double*[kr_kol];
+        for(int i=0;i<kr_kol;i++) ocenka_alt_i_kr[i]=new double[alt_kol];
+        dolya_alt_i_kr=new double*[kr_kol];
+        for(int i=0;i<kr_kol;i++) dolya_alt_i_kr[i]=new double[alt_kol];
+        ocenka_podkr=new double*[kr_kol];
+        for(int i=0;i<kr_kol;i++) ocenka_podkr[i]=new double[podkr_kol];
+        dolya_podkr=new double*[kr_kol];
+        for(int i=0;i<kr_kol;i++) dolya_podkr[i]=new double[podkr_kol];
+        ocenka_alt_i_podkr=new double**[kr_kol];
+        for(int i=0;i<kr_kol;i++)
+        {
+                ocenka_alt_i_podkr[i]=new double*[podkr_kol];
+                for(int j=0;j<podkr_kol;j++) ocenka_alt_i_podkr[i][j]=new double[alt_kol];
+        }
+        dolya_alt_i_podkr=new double**[alt_kol];
+        for(int i=0;i<kr_kol;i++)
+        {
+                dolya_alt_i_podkr[i]=new double*[podkr_kol];
+                for(int j=0;j<podkr_kol;j++) dolya_alt_i_podkr[i][j]=new double[alt_kol];
+        }
+        double *alt_ocenka;
+        alt_ocenka=new double[alt_kol];
+
+        //суммы оценок
+        double summa_ocenok_kr=0.0;
+        double *summa_ocenok_alt_i_kr;
+        summa_ocenok_alt_i_kr=new double[kr_kol];
+        for(int i=0;i<kr_kol;i++) summa_ocenok_alt_i_kr[i]=0.0;
+        double *summa_ocenok_podkr;
+        summa_ocenok_podkr=new double[kr_kol];
+        for(int i=0;i<kr_kol;i++) summa_ocenok_podkr[i]=0.0;
+        double **summa_ocenok_alt_i_podkr;
+        summa_ocenok_alt_i_podkr=new double*[kr_kol];
+        for(int i=0;i<kr_kol;i++) summa_ocenok_alt_i_podkr[i]=new double[podkr_kol];
+        for(int i=0;i<kr_kol;i++) for(int j=0;j<podkr_kol;j++) summa_ocenok_alt_i_podkr[i][j]=0.0;
+
+        if(podkr_kol>0)
+        {
+          bool proverka;
+          for(int i=0;i<kr_kol;i++)
+          {
+                cout<<"Vvedite podkriterii dlya kriterija "<<kr_mas[i]<<" (cherez zapyatuyu): ";
+                do{
+                getline(cin,stroka);
+                proverka=proverkaF(stroka, podkr_kol);
+                } while (stroka==""||proverka==false);
+                for(int j=0;j<podkr_kol;j++) podkr_mas[i][j]=zapMas(stroka, j+1);
+                stroka="";
+          }
+
+          razdel="VVOD OCENOK";
+          vyvodRazdelov(razdel);
+
+        //оценка критериев относительно друг друга
+          for(int i=0;i<kr_kol;i++)
+          {
+                cout<<"Vvedite ocenku kriteriya "<<kr_mas[i]<< " (0-10): ";
+                do{cin>>ocenka_kr[i];} while (ocenka_kr[i]<0||ocenka_kr[i]>10);
+          }
+
+        //оценка занчимости подкритериев между собой и для каждой альтернативы
+          for(int i=0;i<kr_kol;i++)
+          {
+                cout<<"Vvedite znachimost' podkriteriev kriterija "<<kr_mas[i]<<" po otnosheniju drug k drugu (0-10):"<<endl;
+                for(int j=0;j<podkr_kol;j++)
+                {
+                        cout<<"Podkriterija "<<podkr_mas[i][j]<<": ";
+                        do{cin>>ocenka_podkr[i][j];} while (ocenka_podkr[i][j]<0||ocenka_podkr[i][j]>10);
+                }
+          }
+          cout<<"Vvedite znachimost' podkriterija dlya kazhdoj alternativy (0-10): "<<endl;
+          for(int i=0;i<kr_kol;i++)
+          {
+                        for(int j=0;j<podkr_kol;j++)
+                        {
+                                for(int z=0;z<alt_kol;z++)
+                                {
+                                cout<<podkr_mas[i][j]<<" kriterija "<<kr_mas[i]<<" dlya "<<alt_mas[z]<<": ";
+                                do{cin>>ocenka_alt_i_podkr[i][j][z];} while (ocenka_alt_i_podkr[i][j][z]<0||ocenka_alt_i_podkr[i][j][z]>10);
+                                }
+                                cout<<endl;
+                        }
+          }
+        //заполнение массивов долей критериев к криетериям, подкритериев к подкритериям и подкритериев к альтернативам
+
+          for(int i=0;i<kr_kol;i++) summa_ocenok_kr+=ocenka_kr[i];
+          for(int i=0;i<kr_kol;i++) dolya_kr[i]=ocenka_kr[i]/summa_ocenok_kr;
+          for(int i=0;i<kr_kol;i++) for(int j=0;j<podkr_kol;j++) summa_ocenok_podkr[i]+=ocenka_podkr[i][j];
+          for(int i=0;i<kr_kol;i++)
+                for(int j=0;j<podkr_kol;j++)
+                        for(int z=0;z<alt_kol;z++) summa_ocenok_alt_i_podkr[i][j]+=ocenka_alt_i_podkr[i][j][z];
+          for(int i=0;i<kr_kol;i++) for(int j=0;j<podkr_kol;j++) dolya_podkr[i][j]=ocenka_podkr[i][j]/summa_ocenok_podkr[i];
+          for(int i=0;i<kr_kol;i++)
+                for(int j=0;j<podkr_kol;j++)
+                        for(int z=0;z<alt_kol;z++) dolya_alt_i_podkr[i][j][z]=(ocenka_alt_i_podkr[i][j][z]/summa_ocenok_alt_i_podkr[i][j]);
+
+          razdel="RESULTAT '"+problema+"'";
+          vyvodRazdelov(razdel);
+
+        //оценки альтернатив
+          for(int i=0;i<alt_kol;i++) alt_ocenka[i]=0.0;
+          for(int z=0;z<alt_kol;z++)
+                for(int i=0;i<kr_kol;i++)
+                        for(int j=0;j<podkr_kol;j++) alt_ocenka[z]+=((dolya_alt_i_podkr[i][j][z])*(dolya_podkr[i][j])*(dolya_kr[i]));
+          for(int i=0;i<alt_kol;i++) cout<<alt_mas[i]<<": "<<setprecision(5)<<alt_ocenka[i]<<endl;
+        }//окончание подкр>0
+        else
+        {
+         razdel="VVOD OCENOK";
+         vyvodRazdelov(razdel);
+
+        //оценка критериев относительно друг друга
+         for(int i=0;i<kr_kol;i++)
+         {
+                cout<<"Vvedite ocenku kriteriya "<<kr_mas[i]<< " (0-10): ";
+                do{cin>>ocenka_kr[i];} while (ocenka_kr[i]<0||ocenka_kr[i]>10);
+         }
+
+        //оценка занчимости критерия для каждой альтернативы
+         cout<<"Vvedite znachimost' kriteriya dlya kazhdoj alternativy (0-10): "<<endl;
+         for(int i=0;i<kr_kol;i++)
+         {
+                        for(int j=0;j<alt_kol;j++)
+                        {
+                        cout<<kr_mas[i]<<" dlya "<<alt_mas[j]<<": ";
+                        do{cin>>ocenka_alt_i_kr[i][j];} while (ocenka_alt_i_kr[i][j]<0||ocenka_alt_i_kr[i][j]>10);
+                        }
+                        cout<<endl;
+         }
+        //заполнение массивов долей критериев к криетериям и критериев к альтернативам
+
+         for(int i=0;i<kr_kol;i++) summa_ocenok_kr+=ocenka_kr[i];
+         for(int i=0;i<kr_kol;i++) for (int j=0;j<alt_kol;j++) summa_ocenok_alt_i_kr[i]+=ocenka_alt_i_kr[i][j];
+         for(int i=0;i<kr_kol;i++) dolya_kr[i]=ocenka_kr[i]/summa_ocenok_kr;
+         for(int i=0;i<kr_kol;i++) for(int j=0;j<alt_kol;j++) dolya_alt_i_kr[i][j]=ocenka_alt_i_kr[i][j]/summa_ocenok_alt_i_kr[i];
+
+         razdel="RESULTAT '"+problema+"'";
+         vyvodRazdelov(razdel);
+
+        //оценки альтернатив
+         for(int i=0;i<alt_kol;i++) alt_ocenka[i]=0.0;
+         for(int i=0;i<alt_kol;i++) for(int j=0; j<kr_kol;j++) alt_ocenka[i]+=((dolya_alt_i_kr[j][i])*(dolya_kr[j]));
+         for(int i=0;i<alt_kol;i++) cout<<alt_mas[i]<<": "<<setprecision(5)<<alt_ocenka[i]<<endl;
+        }
+        //построение гистограммы и выбор оптимальной альтернативы
+        cout<<endl;
+        int maks_slov_alt=maksSlov(alt_mas,alt_kol);
+        double *gist;
+        gist=new double[alt_kol];
+        for(int i=0;i<alt_kol;i++) gist[i]=alt_ocenka[i]*100.0;
+        for(int i=0;i<alt_kol;i++)
+        {
+                gist[i]=(int)(gist[i]+0.5);
+                cout<<setw(maks_slov_alt)<<alt_mas[i]<<" | ";
+                for(int j=0;j<gist[i];j++) cout<<"#";
+                cout<<" "<<alt_ocenka[i]*100<<"%"<<endl;
+        }
+        double maks_ocenka_alt=alt_ocenka[0];
+        int alt_optim=0;
+        for(int i=0;i<alt_kol;i++) if(maks_ocenka_alt<alt_ocenka[i]) {maks_ocenka_alt=alt_ocenka[i]; alt_optim=i;}
+        cout<<endl;
+        cout<<"OPTIMALNAJA ALTERNATIVA: '"<<alt_mas[alt_optim]<<"'."<<endl;
+
+        //освобождение памяти
+
+        delete[] alt_mas;
+        delete[] kr_mas;
+        for(int i=0;i<kr_kol;i++) delete[] podkr_mas[i];
+        delete[] podkr_mas;
+        delete[] ocenka_kr;
+        for(int i=0;i<kr_kol;i++) delete[] ocenka_alt_i_kr[i];
+        delete[] ocenka_alt_i_kr;
+        delete[] dolya_kr;
+        delete[] summa_ocenok_alt_i_kr;
+        for(int i=0;i<kr_kol;i++) delete[] dolya_alt_i_kr[i];
+        delete[] dolya_alt_i_kr;
+        for(int i=0;i<kr_kol;i++) delete[] ocenka_podkr[i];
+        delete[] ocenka_podkr;
+        for(int i=0;i<kr_kol;i++) delete[] dolya_podkr[i];
+        delete[] dolya_podkr;
+        delete[] summa_ocenok_podkr;
+        for (int i=0;i<kr_kol;i++)
+        {
+                for (int j=0;j<podkr_kol;j++)
+                {
+                        delete[] ocenka_alt_i_podkr[i][j];
+                }
+                delete[] ocenka_alt_i_podkr[i];
+        }
+        delete[] ocenka_alt_i_podkr;
+        for (int i=0;i<kr_kol;i++)
+        {
+                for (int j=0;j<podkr_kol;j++)
+                {
+                        delete[] dolya_alt_i_podkr[i][j];
+                }
+                delete[] dolya_alt_i_podkr[i];
+        }
+        delete[] dolya_alt_i_podkr;
+        for(int i=0;i<kr_kol;i++) delete[] summa_ocenok_alt_i_podkr[i];
+        delete[] summa_ocenok_alt_i_podkr;
+        delete[] alt_ocenka;
+        delete[] gist;
+        system("pause");
+        return 0;
+}
+//------------------------------------------------------------------------------
+int kolZnach(string stroka)
+{
+        int schet=0;
+        for(int i=0;i<stroka.length();i++)
+                {
+                        do{ i++; }
+                        while ((stroka[i]!=',')&&(stroka[i]!='\0'));
+                schet+=1;
+                }
+        return schet;
+}
+
+string zapMas(string stroka, int i)
+{
+        int schet=0;
+        string znachstr="";
+        for(int j=0;j<stroka.length();j++)
+                {
+                        do{
+                                znachstr+=stroka[j];
+                                j++;
+                        }
+                        while ((stroka[j]!=',')&&(stroka[j]!='\0'));
+                schet+=1;
+                if (schet==i)
+                {               for(int l=0;l<znachstr.length();l++)
+                                {
+                                        for(int z=0;z<znachstr.length();z++)
+                                        {
+                                                if(znachstr[z]==32)
+                                                for(int k=z;k<znachstr.length();k++)
+                                                {
+                                                        znachstr[k]=znachstr[k+1];
+                                                }
+                                                else break;
+                                        }
+                                }
+                        for(int z=znachstr.length()-1;znachstr[z]==32||znachstr[z]=='\0';z--) znachstr.pop_back();
+                        if(znachstr[znachstr.length()-1]=='\0') znachstr.pop_back();
+                        return znachstr;
+
+                }
+                znachstr="";
+                }
+}
+
+bool proverkaF(string stroka, int proverka)
+{
+        int schet=0;
+        for(int i=0;i<stroka.length();)
+                {
+                        do{ i++; }
+                        while ((stroka[i]!=',')&&(stroka[i]!='\0'));
+                schet+=1;
+                }
+        if(schet!=proverka) return false;
+        else return true;
+}
+
+int maksSlov(string *mas, int kol)
+{
+        int maks=mas[0].length();
+        for(int i=0;i<kol;i++) if(maks<mas[i].length()) maks=mas[i].length();
+        return maks;
+}
+void vyvodRazdelov(string razdel)
+{
+        double dolya=(int)(((razdel.length()*100.0)/80.0)+0.5);
+        dolya=(100.0-dolya)/2.0;
+        dolya=(80.0*dolya)/100.0;
+        char simv=205;
+        for(int i=0;i<dolya;i++) cout<<simv;
+        cout<<razdel;
+        for(int i=0;i<(80-razdel.length()-dolya-1);i++) cout<<simv;
+}
+
+
+
+
